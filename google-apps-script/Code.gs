@@ -19,7 +19,7 @@
 
 // Configuration Constants
 var LABEL_NAME = 'CardTracker/Processed';
-var SEARCH_QUERY = 'from:(axisbank.com OR kiwi.money) -label:CardTracker/Processed newer_than:7d';
+var SEARCH_QUERY = 'from:(axisbank.com OR kiwi.money OR aubank.in) -label:CardTracker/Processed newer_than:7d';
 var BATCH_LIMIT = 25;
 
 /**
@@ -175,6 +175,7 @@ function testConnection() {
   Logger.log('[CardTracker] Testing connection to: ' + config.url);
 
   var testPayload = {
+    isPing: true,
     messageId: 'test-ping-' + new Date().getTime(),
     date: new Date().toISOString(),
     subject: 'Connectivity Health Check',

@@ -93,7 +93,7 @@ If you get code `401`, verify that `CARDTRACKER_INGESTION_TOKEN` in Script Prope
 1. Select `syncBankEmails` in the dropdown and click **Run**.
 2. It will:
    - Create the Gmail label `CardTracker/Processed` if it doesn't already exist.
-   - Search for bank alerts: `from:(axisbank.com OR kiwi.money) -label:CardTracker/Processed newer_than:7d`.
+   - Search for bank alerts: `from:(axisbank.com OR kiwi.money OR aubank.in) -label:CardTracker/Processed newer_than:7d`.
    - Post matching alerts to CardTracker.
    - Attach the label `CardTracker/Processed` to successful threads.
 

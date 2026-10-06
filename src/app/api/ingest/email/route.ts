@@ -52,6 +52,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Healthcheck / Diagnostic ping bypass (does not write to database)
+    if (body.isPing || body.isHealthCheck || contentToParse.toLowerCase().includes('connectivity test ping')) {
+      return NextResponse.json({ success: true, message: 'CardTracker API is responsive and authenticated' });
+    }
+
     const messageId = body.messageId || body.message_id || undefined;
     const transactionTime = body.transactionTime || body.date || undefined;
 

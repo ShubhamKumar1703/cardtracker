@@ -1,7 +1,7 @@
 import Groq from 'groq-sdk';
 
 const groqApiKey = process.env.GROQ_API_KEY || '';
-const MODEL_NAME = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+const MODEL_NAME = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
 
 let groqInstance: Groq | null = null;
 function getGroqClient(): Groq {

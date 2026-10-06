@@ -45,3 +45,18 @@ describe('Tier 3 Idempotency Fingerprint', () => {
     assert.strictEqual(fp1, fp2);
   });
 });
+
+describe('AU Bank Kiwi RuPay Email Parsing', () => {
+  it('correctly parses AU Bank transaction alert', async () => {
+    const { parseTransactionAlert } = await import('../src/lib/parser');
+    const email = 'INR 1,067.38 were spent on your AU Bank Credit Card xx1614 at UPI/LULU INTERNATIONAL on 05-10-2026 at 08:36:58 pm. Click to know the available balance https://app.aubank.in/oBF3/fmdawo0p';
+    const parsed = await parseTransactionAlert(email);
+
+    assert.strictEqual(parsed.amount, 1067.38);
+    assert.strictEqual(parsed.instrument_hint, 'Kiwi RuPay Card');
+    assert.strictEqual(parsed.rail, 'UPI');
+    assert.strictEqual(parsed.merchant_normalized, 'LULU INTERNATIONAL');
+    assert.strictEqual(parsed.type, 'DEBIT');
+  });
+});
+

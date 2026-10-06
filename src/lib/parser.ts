@@ -74,9 +74,10 @@ export async function parseTransactionAlert(rawText: string, alertDate: Date = n
   let instrument_hint: string | null = null;
   let rail: PaymentRail | null = null;
 
-  if (/Kiwi|RuPay/i.test(cleanText)) {
+  if (/Kiwi|RuPay|AU Bank|aubank|AU Small Finance/i.test(cleanText)) {
     instrument_hint = 'Kiwi RuPay Card';
-    rail = 'UPI';
+    // If spent at UPI/ or UPI txn, rail is UPI; otherwise default to UPI for Kiwi cards
+    rail = /UPI/i.test(cleanText) ? 'UPI' : 'CARD';
   } else if (/Axis Neo/i.test(cleanText)) {
     instrument_hint = 'Axis Neo Card';
     rail = /UPI/i.test(cleanText) ? 'UPI' : 'CARD';
@@ -90,9 +91,15 @@ export async function parseTransactionAlert(rawText: string, alertDate: Date = n
 
   // 5. Merchant Extraction (Regex heuristics)
   let rawMerchant = 'Unknown Merchant';
-  const vpaMatch = cleanText.match(/(?:VPA|to|at|info)\s+([A-Za-z0-9._@\- ]{3,35})(?:\s+on|\s+dated|\s+ref|\s+UTR|\.|$)/i);
+  // Allow slashes and dots to capture formats like 'UPI/LULU INTERNATIONAL'
+  const vpaMatch = cleanText.match(/(?:VPA|to|at|info)\s+([A-Za-z0-9._@\/\- ]{3,45}?)(?:\s+on\s+\d|\s+dated|\s+ref|\s+UTR|\.|$)/i);
   if (vpaMatch && vpaMatch[1]) {
-    rawMerchant = vpaMatch[1].trim();
+    let extracted = vpaMatch[1].trim();
+    // Strip prefixes like UPI/ or VPA/
+    extracted = extracted.replace(/^(?:UPI|VPA)\//i, '').trim();
+    if (extracted) {
+      rawMerchant = extracted;
+    }
   }
 
   let normalizedMerchant = rawMerchant;
