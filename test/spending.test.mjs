@@ -91,3 +91,42 @@ Axis Bank Ltd.`;
   });
 });
 
+describe('Axis Bank Credit Card Email Parsing', () => {
+  it('correctly parses Axis Bank credit card transaction with Merchant Name', async () => {
+    const { parseTransactionAlert } = await import('../src/lib/parser');
+    const email = `Here's the summary of your Axis Bank Credit Card Transaction:
+	
+Transaction Amount:
+INR 99
+	
+Merchant Name:
+CRED Store
+	
+Axis Bank Credit Card No.
+XX3861
+	
+Date & Time:
+05-10-2026, 19:07:50 IST
+	
+Available Limit*:
+INR 113701.42
+	
+Total Credit Limit*:
+INR 123000
+*The information above includes the available and total credit limit across all of your Axis Bank credit cards.
+If this transaction was not intiated by you:
+SMS BLOCK 3861 to +919951860002
+Always open to help you.
+Regards,
+Axis Bank Ltd.`;
+
+    const parsed = await parseTransactionAlert(email);
+    assert.strictEqual(parsed.amount, 99);
+    assert.strictEqual(parsed.merchant_normalized, 'CRED Store');
+    assert.strictEqual(parsed.instrument_hint, 'Axis Credit Card');
+    assert.strictEqual(parsed.rail, 'CARD');
+    assert.strictEqual(parsed.type, 'DEBIT');
+  });
+});
+
+

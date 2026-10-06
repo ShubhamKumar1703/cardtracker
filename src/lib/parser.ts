@@ -113,6 +113,18 @@ export async function parseTransactionAlert(rawText: string, alertDate: Date = n
     }
   }
 
+  // Check structured "Merchant Name:" (Axis Bank Credit Card format)
+  if (rawMerchant === 'Unknown Merchant') {
+    const merchantNameMatch = rawText.match(/(?:Merchant\s*Name|Merchant)[:\s\r\n]+([^\r\n]+)/i);
+    if (merchantNameMatch && merchantNameMatch[1]) {
+      const candidate = merchantNameMatch[1].trim();
+      const isHeaderOrDisclaimer = /^(?:Axis|Credit|Card|Available|Total|Date|Amount|Dear|INR)\b/i.test(candidate);
+      if (candidate && candidate.length >= 2 && !isHeaderOrDisclaimer) {
+        rawMerchant = candidate;
+      }
+    }
+  }
+
   // Fallback heuristic if not already extracted
   if (rawMerchant === 'Unknown Merchant') {
     // Only match 'paid to', 'sent to', 'transferred to', 'spent at', 'at', 'VPA'
