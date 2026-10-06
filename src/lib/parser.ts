@@ -81,9 +81,9 @@ export async function parseTransactionAlert(rawText: string, alertDate: Date = n
   } else if (/Axis Neo/i.test(cleanText)) {
     instrument_hint = 'Axis Neo Card';
     rail = /UPI/i.test(cleanText) ? 'UPI' : 'CARD';
-  } else if (/Credit Card ending|Axis Bank Card/i.test(cleanText)) {
+  } else if (/Axis|credit card no\.|Credit Card ending|axis\.bank/i.test(cleanText)) {
     instrument_hint = 'Axis Credit Card';
-    rail = 'CARD';
+    rail = /UPI/i.test(cleanText) ? 'UPI' : 'CARD';
   } else if (/UPI\/P2M|debited towards VPA|UPI txn/i.test(cleanText)) {
     instrument_hint = 'Bank Account UPI';
     rail = 'UPI';

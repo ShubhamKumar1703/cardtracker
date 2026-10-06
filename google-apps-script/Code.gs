@@ -19,7 +19,7 @@
 
 // Configuration Constants
 var LABEL_NAME = 'CardTracker/Processed';
-var SEARCH_QUERY = 'from:(axisbank.com OR kiwi.money OR aubank.in) -label:CardTracker/Processed newer_than:7d';
+var SEARCH_QUERY = 'from:(aubank.in OR axis.bank.in OR axisbank.com OR kiwi.money) -label:CardTracker/Processed newer_than:7d';
 var BATCH_LIMIT = 25;
 
 /**
