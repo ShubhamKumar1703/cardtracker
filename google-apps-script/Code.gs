@@ -209,6 +209,25 @@ function testConnection() {
 }
 
 /**
+ * Utility to re-sync all past bank emails with the latest parser.
+ * Removes the CardTracker/Processed label from previous bank emails
+ * and re-processes them cleanly.
+ */
+function reprocessAllBankEmails() {
+  var label = GmailApp.getUserLabelByName(LABEL_NAME);
+  if (label) {
+    var threads = label.getThreads(0, 100);
+    Logger.log('[CardTracker] Found ' + threads.length + ' processed threads to re-evaluate.');
+    for (var i = 0; i < threads.length; i++) {
+      label.removeFromThread(threads[i]);
+    }
+    Logger.log('[CardTracker] Removed CardTracker/Processed label from all threads.');
+  }
+  Logger.log('[CardTracker] Starting fresh sync with updated parser...');
+  syncBankEmails();
+}
+
+/**
  * Automation helper: Sets up a 5-minute recurring time-driven trigger for syncBankEmails.
  * Run this once manually from the Apps Script editor.
  */

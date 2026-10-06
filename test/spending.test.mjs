@@ -60,3 +60,34 @@ describe('AU Bank Kiwi RuPay Email Parsing', () => {
   });
 });
 
+describe('Axis Bank Direct UPI Email Parsing', () => {
+  it('correctly parses Axis Bank savings account UPI debit alert', async () => {
+    const { parseTransactionAlert } = await import('../src/lib/parser');
+    const email = `AXIS BANK
+05-10-2026
+Dear Shubham Kumar,
+Here's the summary of your transaction:
+Amount Debited:
+INR 314.00
+Account Number:
+XX8460
+Date & Time:
+05-10-26, 09:58:06 IST
+Transaction Info:
+UPI/P2A/664418444207/Mr Aman Tripathi
+If this transaction was not initiated by you:
+To block UPI:
+Always open to help you.
+Regards,
+Axis Bank Ltd.`;
+
+    const parsed = await parseTransactionAlert(email);
+    assert.strictEqual(parsed.amount, 314.00);
+    assert.strictEqual(parsed.bank_reference_id, '664418444207');
+    assert.strictEqual(parsed.merchant_normalized, 'Aman Tripathi');
+    assert.strictEqual(parsed.instrument_hint, 'Bank Account UPI');
+    assert.strictEqual(parsed.rail, 'UPI');
+    assert.strictEqual(parsed.type, 'DEBIT');
+  });
+});
+

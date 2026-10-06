@@ -74,31 +74,56 @@ export async function parseTransactionAlert(rawText: string, alertDate: Date = n
   let instrument_hint: string | null = null;
   let rail: PaymentRail | null = null;
 
-  if (/Kiwi|RuPay|AU Bank|aubank|AU Small Finance/i.test(cleanText)) {
+  if (/A\/c no\.|from your A\/c|Account Number:|UPI\/P2|debited towards VPA|Bank UPI/i.test(cleanText)) {
+    instrument_hint = 'Bank Account UPI';
+    rail = 'UPI';
+  } else if (/Kiwi|RuPay|AU Bank|aubank|AU Small Finance/i.test(cleanText)) {
     instrument_hint = 'Kiwi RuPay Card';
     // If spent at UPI/ or UPI txn, rail is UPI; otherwise default to UPI for Kiwi cards
     rail = /UPI/i.test(cleanText) ? 'UPI' : 'CARD';
   } else if (/Axis Neo/i.test(cleanText)) {
     instrument_hint = 'Axis Neo Card';
     rail = /UPI/i.test(cleanText) ? 'UPI' : 'CARD';
-  } else if (/Axis|credit card no\.|Credit Card ending|axis\.bank/i.test(cleanText)) {
+  } else if (/credit card no\.|Credit Card ending|Credit Card/i.test(cleanText)) {
     instrument_hint = 'Axis Credit Card';
-    rail = /UPI/i.test(cleanText) ? 'UPI' : 'CARD';
-  } else if (/UPI\/P2M|debited towards VPA|UPI txn/i.test(cleanText)) {
+    rail = 'CARD';
+  } else if (/UPI/i.test(cleanText)) {
     instrument_hint = 'Bank Account UPI';
     rail = 'UPI';
   }
 
   // 5. Merchant Extraction (Regex heuristics)
   let rawMerchant = 'Unknown Merchant';
-  // Allow slashes and dots to capture formats like 'UPI/LULU INTERNATIONAL'
-  const vpaMatch = cleanText.match(/(?:VPA|to|at|info)\s+([A-Za-z0-9._@\/\- ]{3,45}?)(?:\s+on\s+\d|\s+dated|\s+ref|\s+UTR|\.|$)/i);
-  if (vpaMatch && vpaMatch[1]) {
-    let extracted = vpaMatch[1].trim();
-    // Strip prefixes like UPI/ or VPA/
-    extracted = extracted.replace(/^(?:UPI|VPA)\//i, '').trim();
-    if (extracted) {
-      rawMerchant = extracted;
+
+  // Check structured "Transaction Info: UPI/P2A/UTR/Recipient" (Axis Bank Direct UPI format)
+  const txInfoMatch = rawText.match(/Transaction Info:\s*([^\r\n]+)/i);
+  if (txInfoMatch) {
+    const parts = txInfoMatch[1].trim().split('/');
+    if (parts.length >= 4 && /^UPI$/i.test(parts[0])) {
+      if (!bank_reference_id && parts[2]) {
+        bank_reference_id = parts[2].trim();
+      }
+      let recipient = parts.slice(3).join('/').trim();
+      recipient = recipient.replace(/^(?:Mr|Ms|Mrs|Dr)\.?\s+/i, '').trim();
+      if (recipient) {
+        rawMerchant = recipient;
+      }
+    } else if (txInfoMatch[1].trim()) {
+      rawMerchant = txInfoMatch[1].trim();
+    }
+  }
+
+  // Fallback heuristic if not already extracted
+  if (rawMerchant === 'Unknown Merchant') {
+    // Only match 'paid to', 'sent to', 'transferred to', 'spent at', 'at', 'VPA'
+    const vpaMatch = cleanText.match(/(?:VPA|paid to|sent to|transferred to|spent at|at)\s+([A-Za-z0-9._@\/\- ]{3,45}?)(?:\s+on|\s+dated|\s+ref|\s+UTR|\.|$)/i);
+    if (vpaMatch && vpaMatch[1]) {
+      let extracted = vpaMatch[1].trim();
+      extracted = extracted.replace(/^(?:UPI|VPA)\//i, '').trim();
+      const isDisclaimer = /^(?:help you|block|view|know|connect with|inform you|enter a password|migrated to|Axis Bank Credit Card|your Card)\b/i.test(extracted);
+      if (extracted && !isDisclaimer) {
+        rawMerchant = extracted;
+      }
     }
   }
 
@@ -109,8 +134,8 @@ export async function parseTransactionAlert(rawText: string, alertDate: Date = n
   // Merchant keyword matching is driven by database merchant_rules and Groq AI fallback.
   // If not matched by user rules or ambiguous, leave category null to require review.
 
-  // If category or rail is still not certain, invoke Groq AI Fallback
-  if (!categorySlug || !rail) {
+  // If category, rail, or merchant is still not certain, invoke Groq AI Fallback
+  if (!categorySlug || !rail || normalizedMerchant === 'Unknown Merchant') {
     const aiResult = await categorizeWithGroq(rawText);
     if (!categorySlug && aiResult.category_slug) {
       categorySlug = aiResult.category_slug;
