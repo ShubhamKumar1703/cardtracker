@@ -229,3 +229,59 @@ function setupRecurringTrigger() {
 
   Logger.log('[CardTracker] Recurring 5-minute trigger created successfully for syncBankEmails.');
 }
+
+/**
+ * Discovery utility: Scans your Gmail for bank and card alert emails
+ * across the past 90 days and outputs all unique sender email addresses
+ * and subjects. Run this from the dropdown to automatically find all your banks!
+ */
+function discoverBankSenders() {
+  var discoveryQuery = '(debited OR spent OR "credit card" OR "transaction alert" OR "UPI txn" OR "INR" OR "were spent") newer_than:90d';
+  Logger.log('[Discovery] Searching Gmail with query: ' + discoveryQuery);
+  var threads = GmailApp.search(discoveryQuery, 0, 40);
+
+  if (threads.length === 0) {
+    Logger.log('[Discovery] No transaction alert emails found in the last 90 days.');
+    return;
+  }
+
+  var senders = {};
+
+  for (var i = 0; i < threads.length; i++) {
+    var msgs = threads[i].getMessages();
+    for (var j = 0; j < msgs.length; j++) {
+      var from = msgs[j].getFrom();
+      var subject = msgs[j].getSubject();
+
+      // Extract raw email address
+      var match = from.match(/<([^>]+)>/);
+      var emailAddr = match ? match[1].toLowerCase().trim() : from.toLowerCase().trim();
+
+      if (!senders[emailAddr]) {
+        senders[emailAddr] = {
+          count: 0,
+          fromHeader: from,
+          sampleSubject: subject,
+          domain: emailAddr.split('@')[1] || ''
+        };
+      }
+      senders[emailAddr].count++;
+    }
+  }
+
+  Logger.log('==================== DISCOVERED BANK SENDERS ====================');
+  var uniqueDomains = [];
+  for (var addr in senders) {
+    var item = senders[addr];
+    Logger.log('• SENDER: ' + addr + ' (' + item.count + ' msgs)');
+    Logger.log('  Subject: "' + item.sampleSubject + '"');
+    if (item.domain && uniqueDomains.indexOf(item.domain) === -1) {
+      uniqueDomains.push(item.domain);
+    }
+  }
+  Logger.log('================================================================');
+  Logger.log('RECOMMENDED SEARCH DOMAINS: ' + uniqueDomains.join(' OR '));
+  Logger.log('Recommended SEARCH_QUERY format:');
+  Logger.log('var SEARCH_QUERY = \'from:(' + uniqueDomains.join(' OR ') + ') -label:CardTracker/Processed newer_than:7d\';');
+}
+
